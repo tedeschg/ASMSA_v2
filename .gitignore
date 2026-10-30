@@ -8,7 +8,7 @@ build/
 .venv/
 venv/
 .DS_Store
-
+.idea
 # Large data artifacts kept out by default
 *.xtc
 *.trr

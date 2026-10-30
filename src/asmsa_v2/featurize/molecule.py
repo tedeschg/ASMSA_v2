@@ -44,29 +44,29 @@ def _parse_top(top, ndx = None):
     sect = 'unknown'
     with open(top) as tf:
         for l in tf:
-            if re.match('\s*[;#]',l) or re.match('\s*$',l): continue
-            m = re.match('\[\s*(\w+)\s*\]',l)
+            if re.match(r'\s*[;#]',l) or re.match(r'\s*$',l): continue
+            m = re.match(r'\[\s*(\w+)\s*\]',l)
             if m:
                 sect = m.group(1)
                 continue
             elif sect == 'atoms':
-                m = re.match('\s*(\d+)\s+(\w+)',l)
+                m = re.match(r'\s*(\d+)\s+(\w+)',l)
                 if m:
                     anums.append(int(m.group(1)))
                     types.append(m.group(2))
                     continue
             elif sect == 'bonds':
-                m = re.match('\s*(\d+)\s+(\d+)',l)
+                m = re.match(r'\s*(\d+)\s+(\d+)',l)
                 if m:
                     bonds.append((int(m.group(1)),int(m.group(2))))
                     continue
             elif sect == 'angles':
-                m = re.match('\s*(\d+)\s+(\d+)\s+(\d+)',l)
+                m = re.match(r'\s*(\d+)\s+(\d+)\s+(\d+)',l)
                 if m:
                     angles.append((int(m.group(1)),int(m.group(2)),int(m.group(3))))
                     continue
             elif sect == 'dihedrals':
-                m = re.match('\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',l)
+                m = re.match(r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',l)
                 if m:
                     dihedrals.append((int(m.group(1)),int(m.group(2)),int(m.group(3)),int(m.group(4)),int(m.group(5))))
                     continue
@@ -164,23 +164,23 @@ def _parse_ff(itpfile):
     sect = 'unknown'
     with open(itpfile) as itp:
         for l in itp:
-            if re.match('\s*[;#]',l) or re.match('\s*$',l): continue
-            m = re.match('\[\s*(\S+)\s*\]',l)
+            if re.match(r'\s*[;#]',l) or re.match(r'\s*$',l): continue
+            m = re.match(r'\[\s*(\S+)\s*\]',l)
             if m:
                 sect = m.group(1)
                 continue
             elif sect == 'bondtypes':
-                m = re.match('\s*(\S+)\s+(\S+)\s+\d+\s+(\S+)\s+(\S+)',l)
+                m = re.match(r'\s*(\S+)\s+(\S+)\s+\d+\s+(\S+)\s+(\S+)',l)
                 if m:
                     btypes.append((m.group(1), m.group(2), float(m.group(3)), float(m.group(4))))
                     continue
             elif sect == 'angletypes':
-                m = re.match('\s*(\S+)\s+(\S+)\s+(\S+)\s+\d+\s+(\S+)\s+(\S+)',l)
+                m = re.match(r'\s*(\S+)\s+(\S+)\s+(\S+)\s+\d+\s+(\S+)\s+(\S+)',l)
                 if m:
                     atypes.append((m.group(1), m.group(2), m.group(3), float(m.group(4)), float(m.group(5))))
                     continue
             elif sect == 'dihedraltypes':
-                m = re.match('\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\d+)\s+(\S+)\s+(\S+)',l)
+                m = re.match(r'\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\d+)\s+(\S+)\s+(\S+)',l)
                 if m:
                     if m.group(5) == '4':
                         d4types.append((m.group(1), m.group(2), m.group(3), m.group(4), float(m.group(6)), float(m.group(7))))
@@ -484,7 +484,7 @@ class Molecule:
         numpy.ndarray
             Array of internal coordinates
         """
-        return np.array(self.model(torch.tensor(geoms)))
+        return self.model(torch.as_tensor(geoms, dtype=torch.float32)).detach().cpu().numpy()
 
 
 if __name__ == '__main__':

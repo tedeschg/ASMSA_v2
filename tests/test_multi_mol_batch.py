@@ -16,12 +16,17 @@ def test_batch_is_single_molecule():
     loader = DataLoader(ds, batch_sampler=ds.round_robin_sampler(batch_size=64),
                         collate_fn=multi_mol_collate)
     seen = set()
-    for x, mol_id in loader:
+    n = 0
+    for x, mol_id, extras in loader:
         assert isinstance(mol_id, str)
         assert x.ndim == 2
         assert x.shape[1] == ds.feature_dims[mol_id]
+        assert extras == {}
         seen.add(mol_id)
+        n += 1
     assert seen == {"molA", "molB"}
+    # len() must match the number of batches actually produced
+    assert n == len(loader)
 
 
 def test_round_robin_cycles():

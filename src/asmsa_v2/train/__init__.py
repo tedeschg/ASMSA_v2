@@ -1,4 +1,14 @@
 from .trainer import Trainer
-from .callbacks import Callback, CsvLogger, EarlyStopping, LiveLossPlot
+from .callbacks import (
+    Callback,
+    CsvLogger,
+    EarlyStopping,
+    ModelCheckpoint,
+    LiveLossPlot,
+    LatentSnapshot,
+)
 
-__all__ = ["Trainer", "Callback", "CsvLogger", "EarlyStopping", "LiveLossPlot"]
+__all__ = [
+    "Trainer", "Callback", "CsvLogger", "EarlyStopping",
+    "ModelCheckpoint", "LiveLossPlot", "LatentSnapshot",
+]

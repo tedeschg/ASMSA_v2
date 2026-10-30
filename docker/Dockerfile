@@ -19,8 +19,7 @@ RUN pip install --no-cache-dir \
         torch==2.3.* --index-url https://download.pytorch.org/whl/cu121
 
 COPY . /opt/asmsa_v2
-RUN pip install --no-cache-dir /opt/asmsa_v2[dev] && \
-    pip install --no-cache-dir jupyterlab mdtraj matplotlib
+RUN pip install --no-cache-dir '/opt/asmsa_v2[full]'
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

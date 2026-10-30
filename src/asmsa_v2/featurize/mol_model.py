@@ -87,9 +87,14 @@ class AnglesModel(torch.nn.Module):
         super().__init__()
         self.n_atoms = n_atoms
         self.angles = np.array(angles).reshape(-1, 3)
+        # Registered as buffers rather than plain tensor attributes so that
+        # .to(device) moves them with the module. As plain attributes they
+        # stayed on the CPU and any GPU featurization with a force field
+        # raised a device-mismatch error at the first forward pass.
         if angles_th0 is not None:
-            self.angles_th0 = torch.tensor(angles_th0, requires_grad=False)
-            self.angles_2rth0 = 2 * torch.reciprocal(self.angles_th0)
+            th0 = torch.as_tensor(angles_th0, dtype=torch.float32)
+            self.register_buffer("angles_th0", th0.detach().clone())
+            self.register_buffer("angles_2rth0", 2 * torch.reciprocal(th0))
         else:
             self.angles_th0 = None
             self.angles_2rth0 = None
@@ -286,7 +291,11 @@ class MoleculeModel(torch.nn.Module):
         self.angles_th0 = angles_th0
         self.dihed4 = dihed4
         self.dihed9 = dihed9
-        self.feature_maps = feature_maps
+        # ModuleList rather than a plain list so the feature maps are
+        # registered children: .to(device), .eval() and state_dict() reach them.
+        self.feature_maps = (
+            torch.nn.ModuleList(feature_maps) if feature_maps else None
+        )
 
         self.bonds_model = None
         self.angles_model = None

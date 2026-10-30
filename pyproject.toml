@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "asmsa_v2"
-version = "2.0.0a0"
+version = "2.0.0"
 description = "Analysis and Sampling of Molecular Simulations by adversarial Autoencoders (v2, PyTorch)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,13 +22,33 @@ dependencies = [
     "sympy",
     "tqdm",
     "pillow",
+    "pyyaml",          # Project config (asmsa.yaml)
 ]
 
 [project.optional-dependencies]
 dev = ["pytest", "ipykernel", "jupyterlab"]
+# Hyperparameter tuning (03-tune); falls back to random search without optuna
+tune = ["optuna", "pandas"]
+# Clustering / pose analysis backends (07-analysis)
+analysis = ["scikit-learn", "hdbscan", "pandas"]
+# Interactive notebook visualization: hover plots + 3D structure linkage
+viz = ["plotly", "py3Dmol", "ipywidgets"]
+# Everything, for the full notebook pipeline
+full = [
+    "pytest", "ipykernel", "jupyterlab",
+    "optuna", "pandas",
+    "scikit-learn", "hdbscan",
+    "plotly", "py3Dmol", "ipywidgets",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
 "asmsa_v2.featurize" = ["*.itp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::FutureWarning:torch.jit",
+]

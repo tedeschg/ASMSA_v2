@@ -2,7 +2,11 @@ from typing import Sequence
 
 import torch
 import torch.nn as nn
-from torch.nn.utils import spectral_norm
+
+try:  # current API (torch >= 1.12); the torch.nn.utils.spectral_norm hook is legacy
+    from torch.nn.utils.parametrizations import spectral_norm
+except ImportError:  # pragma: no cover - very old torch
+    from torch.nn.utils import spectral_norm
 
 
 class Discriminator(nn.Module):
