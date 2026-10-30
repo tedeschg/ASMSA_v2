@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+dist/
+build/
+.venv/
+venv/
+.DS_Store
+
+# Large data artifacts kept out by default
+*.xtc
+*.trr
+*.h5
+*.pt
+*.ckpt
+
+# Logs
+*.log
+logs/

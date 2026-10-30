@@ -1,0 +1,11 @@
+.git
+.gitignore
+.github
+__pycache__
+*.pyc
+.pytest_cache
+.ipynb_checkpoints
+notebooks/*.ipynb_checkpoints
+*.egg-info
+dist
+build
