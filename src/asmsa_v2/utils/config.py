@@ -23,8 +23,6 @@ class TrainConfig:
     adam_betas: tuple[float, float] = (0.5, 0.999)
     recon_loss: str = "mse"               # key into asmsa_v2.losses.recon.RECON_LOSSES
     label_smoothing: float = 0.0
-    with_density: bool = False
-    lam_density: float = 1.0
     with_cv1_bias: bool = False
     lam_cv1: float = 1.0
     log_every: int = 50

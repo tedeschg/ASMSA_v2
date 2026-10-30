@@ -8,6 +8,7 @@ from .priors import Prior, IsotropicNormalPrior, GMMPrior, gmm_on_circle, ImageP
 from .data import MultiMolDataset, RoundRobinBatchSampler, multi_mol_collate, featurize_frames
 from .train import Trainer, Callback, CsvLogger, EarlyStopping, LiveLossPlot
 from .utils import ModelConfig, TrainConfig, set_seed
+from .featurize import Molecule, ComplexMolecule, MoleculeModel, InterComponentDistances
 
 __version__ = "2.0.0a0"
 
@@ -17,5 +18,6 @@ __all__ = [
     "MultiMolDataset", "RoundRobinBatchSampler", "multi_mol_collate", "featurize_frames",
     "Trainer", "Callback", "CsvLogger", "EarlyStopping", "LiveLossPlot",
     "ModelConfig", "TrainConfig", "set_seed",
+    "Molecule", "ComplexMolecule", "MoleculeModel", "InterComponentDistances",
     "__version__",
 ]

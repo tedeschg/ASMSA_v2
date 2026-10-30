@@ -2,13 +2,15 @@
 
 Analysis and Sampling of Molecular Simulations by adversarial Autoencoders — PyTorch rewrite.
 
-v2 fixes three concrete problems in the v1 AAE:
+v2 is designed around the **protein-ligand (or protein-protein) complex** use case: train an AAE on an MD trajectory of a complex and the learned 2-D latent space clusters binding poses / conformational states. Compared to v1 it fixes three concrete problems and adds one capability:
 
-1. The discriminator loss is now a real BCE-with-logits with spectral-normalized disc layers (v1 had a comment claiming BCE but implemented an unstable raw-logits + random-scaling hybrid).
-2. Three separate optimizers for AE, discriminator, and the encoder-adversarial step, so Adam moments stay clean (v1 shared one optimizer across all three).
-3. A single AAE can now be jointly trained on frames from multiple molecules with different feature-vector lengths, via per-molecule input/output adapters feeding a shared trunk and discriminator (v1 was single-molecule only).
+1. The discriminator is a real BCE-with-logits critic with spectral-normalized layers (v1 claimed BCE in a comment but implemented an unstable raw-logits + random-scaling hybrid).
+2. Three separate Adam optimizers for AE, discriminator, and the encoder-adversarial step keep moments cleanly separated across objectives (v1 shared one optimizer across all three).
+3. The featurizer now understands **complexes**: alongside the standard intra-component bonds/angles/dihedrals, `ComplexMolecule` emits inter-component distance features between named atom subsets of the two parts of the system — the signal that encodes the binding pose.
 
-The featurization layer (`asmsa_v2.featurize.molecule`, `asmsa_v2.featurize.mol_model`) is reused as-is from v1 — it was already PyTorch.
+The featurization layer (`asmsa_v2.featurize.molecule`, `.mol_model`) is reused as-is from v1 (it was already PyTorch); `ComplexMolecule` is a thin wrapper on top.
+
+As a free bonus from the architecture, the AAE can also be trained jointly on multiple separately-topologized molecules by passing more than one entry to `feature_dims` — useful later if you want a universal latent space across several protein-ligand pairs.
 
 ## Install
 
@@ -31,17 +33,40 @@ GROMACS must be installed separately (`apt-get install gromacs` on Ubuntu).
 
 ## Quickstart
 
-See `notebooks/01-train-multi-mol.ipynb` — trains one AAE jointly on two molecules with different atom counts and plots the shared latent space.
+See `notebooks/01-train-complex.ipynb` for the full worked example (synthetic protein+ligand trajectory, two binding poses, latent-space clustering).
 
 ```python
-from asmsa_v2 import AAE, Trainer, TrainConfig, IsotropicNormalPrior, MultiMolDataset
+import mdtraj as md
+from asmsa_v2 import (
+    AAE, Trainer, TrainConfig, IsotropicNormalPrior,
+    ComplexMolecule, MultiMolDataset, multi_mol_collate, featurize_frames,
+)
 from torch.utils.data import DataLoader
 
-ds = MultiMolDataset({"ala2": X_a, "chignolin": X_b})
-loader = DataLoader(ds, batch_sampler=ds.round_robin_sampler(batch_size=128))
+# 1. featurize the complex trajectory
+traj = md.load('traj.xtc', top='complex.pdb')
+cm = ComplexMolecule(
+    pdb='complex.pdb', n_atoms=traj.n_atoms,
+    components={
+        'protein': traj.top.select('protein'),
+        'ligand':  traj.top.select('resname LIG'),
+    },
+    diheds=my_dihed_indices,
+    inter_subsets={                              # which atoms contribute inter-distances
+        'protein': traj.top.select('name CA'),
+        'ligand':  traj.top.select('resname LIG and not symbol H'),
+    },
+    inter_mode='dense',
+)
+X = featurize_frames(traj.xyz, cm.get_model())   # [n_frames, n_features]
 
-model = AAE(feature_dims={"ala2": X_a.shape[1], "chignolin": X_b.shape[1]}, latent_dim=2)
-Trainer(model, prior=IsotropicNormalPrior(2), config=TrainConfig(epochs=50)).fit(loader)
+# 2. train
+ds = MultiMolDataset({'complex': X})
+loader = DataLoader(ds, batch_sampler=ds.round_robin_sampler(batch_size=128),
+                    collate_fn=multi_mol_collate)
+model = AAE(feature_dims=ds.feature_dims, latent_dim=2)
+Trainer(model, prior=IsotropicNormalPrior(2),
+        config=TrainConfig(epochs=50)).fit(loader)
 ```
 
 ## Tests

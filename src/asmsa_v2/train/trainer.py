@@ -11,7 +11,6 @@ from tqdm.auto import tqdm
 
 from ..losses.adversarial import bce_disc_loss, bce_gen_loss
 from ..losses.cv1_bias import cv1_bias_loss
-from ..losses.density import density_matching_loss
 from ..losses.recon import RECON_LOSSES
 from ..models.aae import AAE
 from ..priors.base import Prior
@@ -58,9 +57,8 @@ class Trainer:
         self.stop = False
 
     def _batch_targets(self, batch_raw, key):
-        """Pull optional per-batch targets (density, cv1) off a tuple-formed batch."""
+        """Pull optional per-batch targets (e.g. cv1) off a tuple-formed batch."""
         if isinstance(batch_raw, (tuple, list)) and len(batch_raw) >= 3:
-            # (x, mol_id, extras_dict)
             extras = batch_raw[2]
             if isinstance(extras, dict) and key in extras:
                 return extras[key].to(self.device)
@@ -87,16 +85,12 @@ class Trainer:
                 x, mol_id = batch_raw[0], batch_raw[1]
                 x = x.to(self.device, non_blocking=True)
 
-                # 1. AE step (recon + optional density / cv1 bias)
+                # 1. AE step (recon + optional cv1 bias)
                 self.opt_ae.zero_grad(set_to_none=True)
                 z = self.model.encode(x, mol_id)
                 recon = self.model.decode(z, mol_id)
                 loss_recon = self.recon_fn(recon, x)
                 loss_ae = loss_recon
-                if self.cfg.with_density:
-                    tgt = self._batch_targets(batch_raw, "density")
-                    if tgt is not None:
-                        loss_ae = loss_ae + self.cfg.lam_density * density_matching_loss(z, tgt, self.prior)
                 if self.cfg.with_cv1_bias:
                     tgt = self._batch_targets(batch_raw, "cv1")
                     if tgt is not None:
