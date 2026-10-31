@@ -62,10 +62,10 @@ The Docker image installs GROMACS and the full Python extras. Build and launch i
 
 ```bash
 docker build -t asmsa_v2 -f docker/Dockerfile .
-docker run --rm -p 8888:8888 -v "$PWD:/workspace" asmsa_v2
+docker run --rm --gpus all -p 8888:8888 -v "$PWD:/workspace" asmsa_v2
 ```
 
-The image includes a CUDA-enabled PyTorch build. Add `--gpus all` when running on a host configured for NVIDIA Container Toolkit; for CPU-only use, adjust the PyTorch install in `docker/Dockerfile` to a CPU wheel.
+The image builds GROMACS 2026.3 with PLUMED's PyTorch module and includes CUDA-enabled PyTorch 2.5.1. The default GROMACS build targets CUDA architecture 75; override it for your GPU, for example `--build-arg CUDA_ARCH=86` for an RTX 3060. Building or running the GPU-enabled image requires the NVIDIA CUDA toolkit image and, at runtime, NVIDIA Container Toolkit on the host. To build GROMACS without CUDA, use `--build-arg GMX_GPU=OFF`; this does not change the CUDA-enabled PyTorch package.
 
 ## Project layout
 

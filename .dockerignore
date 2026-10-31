@@ -1,5 +1,6 @@
 .git
 .gitignore
+.venv
 .github
 __pycache__
 *.pyc
