@@ -18,8 +18,8 @@ Two variants are produced:
     ``[n_frames, n_atoms, 3] -> [n_frames, latent_dim]``, for analysing a
     trajectory in Python.
 :class:`PlumedCVModel`
-    ``[n_atoms * 3] -> [latent_dim]``, the single-configuration signature
-    PLUMED's ``PYTORCH_MODEL_CV`` calls at every step.
+    ``[1, n_atoms * 3] -> [1, latent_dim]``, PLUMED's single-configuration
+    signature passed through POSITION components to ``PYTORCH_MODEL``.
 
 Everything is traced in ``eval()`` mode. This is not cosmetic: the encoder
 contains BatchNorm, and tracing it in training mode would bake in
@@ -102,11 +102,11 @@ class BatchCVModel(nn.Module):
 
 
 class PlumedCVModel(nn.Module):
-    """``[n_atoms * 3] -> [latent_dim]``, PLUMED's per-step signature.
+    """``[1, n_atoms * 3] -> [1, latent_dim]``, PLUMED's per-step signature.
 
-    PLUMED passes the positions of the atoms listed in ``ATOMS=`` as a flat
-    tensor in nanometres, matching GROMACS' and mdtraj's units, so no unit
-    conversion is applied.
+    PLUMED passes the x/y/z components of mapped atoms as scalar arguments in
+    nanometres, matching GROMACS' and mdtraj's units, so no unit conversion is
+    applied.
     """
 
     def __init__(
@@ -125,7 +125,7 @@ class PlumedCVModel(nn.Module):
         feats = self.mol_model(xyz)  # [n_features, 1]
         feats = feats.transpose(0, 1)  # [1, n_features]
         z = self.encoder(self.standardize(feats))  # [1, latent_dim]
-        return z.reshape(-1)  # [latent_dim]
+        return z
 
 
 def _freeze_for_export(*modules: nn.Module) -> None:
@@ -261,7 +261,7 @@ def export_cv_models(
         paths["batch"] = out_dir / f"{name}-batch.pt"
         traced_batch.save(str(paths["batch"]))
 
-        flat = ex[0].reshape(-1).contiguous()
+        flat = ex[0].reshape(1, -1).contiguous()
         traced_plumed = _trace_and_freeze(plumed_m, flat)
         paths["plumed"] = out_dir / f"{name}-plumed.pt"
         traced_plumed.save(str(paths["plumed"]))
@@ -322,14 +322,14 @@ def verify_cv_models(
         tp.eval()
         per_frame = torch.stack(
             [
-                tp(example_xyz[i].reshape(-1).contiguous())
+                tp(example_xyz[i].reshape(1, -1).contiguous()).squeeze(0)
                 for i in range(example_xyz.shape[0])
             ]
         )
         err_plumed = float((per_frame - ref).abs().max())
         lines.append(f"plumed (per frame) vs batch: max |diff| = {err_plumed:.3e}")
         lines.append(f"output shape (batch)       : {tuple(got.shape)}")
-        lines.append(f"output shape (plumed)      : {tuple(per_frame.shape[1:])}")
+        lines.append(f"output shape (plumed)      : (1, {per_frame.shape[1]}) per frame")
         lines.append(f"finite outputs             : {bool(torch.isfinite(got).all())}")
 
     report = "\n".join(lines)

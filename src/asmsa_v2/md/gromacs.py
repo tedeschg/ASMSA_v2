@@ -148,20 +148,23 @@ class Gromacs:
               cpi=None, check: bool = True, timeout=None, **opts) -> RunResult:
         """Run MD in the foreground. Use :meth:`mdrun_background` for production."""
         return self._call("mdrun", deffnm=deffnm, plumed=plumed, nt=nt,
-                          ntomp=ntomp, gpu_id=gpu_id, cpi=cpi,
+                          ntomp=ntomp, gpu__id=gpu_id, cpi=cpi,
                           check=check, timeout=timeout, **opts)
 
     def mdrun_background(self, deffnm, plumed=None, nt=None, ntomp=None,
-                         gpu_id=None, cpi=None, **opts) -> BackgroundJob:
+                         gpu_id=None, cpi=None, detached=False,
+                         **opts) -> BackgroundJob:
         """Start MD detached so the notebook kernel stays usable.
 
         A production metadynamics run takes hours to days; poll the returned
         job's :meth:`~asmsa_v2.md.runner.BackgroundJob.status` and run the
-        analysis cells against the partial trajectory meanwhile.
+        analysis cells against the partial trajectory meanwhile. Set
+        ``detached=True`` to start a new process session that survives kernel
+        shutdown.
         """
         args = [self.gmx, "mdrun"] + _flags(
             dict(deffnm=deffnm, plumed=plumed, nt=nt, ntomp=ntomp,
-                 gpu_id=gpu_id, cpi=cpi, **opts)
+                 gpu__id=gpu_id, cpi=cpi, **opts)
         )
         self.commands.append(args)
         if self.dry_run:
@@ -172,6 +175,10 @@ class Gromacs:
             )
         if not isinstance(self.runner, LocalRunner):
             raise TypeError("mdrun_background requires a LocalRunner")
+        if detached:
+            return run_background(
+                self.runner, args, cwd=self.workdir, detached=True
+            )
         return run_background(self.runner, args, cwd=self.workdir)
 
     # -------------------------------------------------------------- analysis
@@ -227,22 +234,32 @@ def check_environment(gmx: str = "gmx", plumed: str = "plumed") -> dict[str, str
             pass
     p = shutil.which(plumed)
     out[plumed] = p or "NOT FOUND"
+    out[f"{plumed} executable"] = p or "NOT FOUND"
     if p:
         try:
-            res = LocalRunner(echo=False).run([plumed, "info", "--version"])
+            res = LocalRunner(echo=False).run([p, "info", "--version"])
             if res.stdout.strip():
                 out[plumed] = res.stdout.strip().splitlines()[0]
         except Exception:
             pass
-    # Is PLUMED's pytorch module (PYTORCH_MODEL_CV) compiled in?
+    # Query the action directly; PLUMED 2.11 does not support `info --modules`.
     if p:
         try:
-            res = LocalRunner(echo=False).run([plumed, "info", "--modules"])
-            mods = (res.stdout or "").lower()
-            out["plumed pytorch module"] = (
-                "enabled" if "pytorch" in mods else
-                "NOT ENABLED - PYTORCH_MODEL_CV will be unavailable"
+            res = LocalRunner(echo=False).run(
+                [p, "manual", "--action", "PYTORCH_MODEL"]
             )
+            output = f"{res.stdout}\n{res.stderr}".upper()
+            if res.ok:
+                out["plumed pytorch module"] = "enabled"
+            elif "LIST OF DOCUMENTED ACTIONS" in output:
+                out["plumed pytorch module"] = (
+                    "NOT REGISTERED in the selected PLUMED executable; "
+                    "PYTORCH_MODEL is unavailable"
+                )
+            else:
+                out["plumed pytorch module"] = (
+                    "unknown - could not verify PYTORCH_MODEL"
+                )
         except Exception:
             out["plumed pytorch module"] = "unknown"
     return out

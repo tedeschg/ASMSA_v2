@@ -198,12 +198,14 @@ class PreparationProtocol:
         return out
 
     def production(self, plumed: str = "plumed.dat", from_checkpoint: bool = False,
-                   background: bool = True, **mdrun_kw) -> BackgroundJob | None:
+                   background: bool = True, detached: bool = False,
+                   **mdrun_kw) -> BackgroundJob | None:
         """Start the biased production run.
 
         A ``HILLS`` file is created if missing, because the generated
         ``plumed.dat`` contains ``RESTART`` and PLUMED refuses to start if the
-        file it is told to resume from does not exist.
+        file it is told to resume from does not exist. Set ``detached=True``
+        to let the run outlive the notebook kernel.
         """
         hills = self.state.path("HILLS")
         if not hills.exists():
@@ -221,6 +223,8 @@ class PreparationProtocol:
             kw["cpi"] = "md.cpt"
         self.done.append("production")
         if background:
+            if detached:
+                return self.gmx.mdrun_background(**kw, detached=True)
             return self.gmx.mdrun_background(**kw)
         self.gmx.mdrun(**kw)
         return None

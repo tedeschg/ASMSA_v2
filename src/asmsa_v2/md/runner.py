@@ -185,12 +185,13 @@ class BackgroundJob:
 
 
 def run_background(runner: LocalRunner, args, cwd=None, env=None,
-                   log_path=None) -> BackgroundJob:
-    """Start a command detached, streaming its output to a log file.
+                   log_path=None, detached: bool = False) -> BackgroundJob:
+    """Start a command in the background, streaming output to a log file.
 
     Production MD runs for hours; blocking the notebook kernel on it would
     make the intermediate-analysis cells unusable, which is the whole point
-    of watching a metadynamics run converge.
+    of watching a metadynamics run converge. ``detached=True`` starts a new
+    session so the command can outlive the notebook kernel.
     """
     args = [str(a) for a in args]
     cwd = Path(cwd) if cwd else runner.workdir
@@ -207,6 +208,7 @@ def run_background(runner: LocalRunner, args, cwd=None, env=None,
     popen = subprocess.Popen(
         args, cwd=str(cwd), env={**os.environ, **(env or {})},
         stdout=fh, stderr=subprocess.STDOUT, text=True,
+        start_new_session=detached,
     )
     # close our handle once the child exits, without blocking the caller
     threading.Thread(target=lambda: (popen.wait(), fh.close()), daemon=True).start()
