@@ -30,8 +30,8 @@ def test_write_plumed_dat_feeds_mapped_positions_to_torch_model(tmp_path):
     )
 
     text = path.read_text()
-    assert "model_position_0: POSITION ATOM=3" in text
-    assert "model_position_1: POSITION ATOM=1" in text
+    assert "model_position_0: POSITION ATOM=3 NOPBC" in text
+    assert "model_position_1: POSITION ATOM=1 NOPBC" in text
     assert (
         "model: PYTORCH_MODEL FILE=cv-plumed.pt "
         "ARG=model_position_0.x,model_position_0.y,model_position_0.z,"
@@ -48,8 +48,8 @@ def test_write_plumed_driver_dat_uses_standard_torch_model(tmp_path):
     )
 
     text = path.read_text()
-    assert "model_position_0: POSITION ATOM=3" in text
-    assert "model_position_1: POSITION ATOM=1" in text
+    assert "model_position_0: POSITION ATOM=3 NOPBC" in text
+    assert "model_position_1: POSITION ATOM=1 NOPBC" in text
     assert "model: PYTORCH_MODEL FILE=cv-plumed.pt ARG=model_position_0.x," in text
     assert "PYTORCH_MODEL_CV" not in text
 

@@ -95,7 +95,7 @@ def _position_inputs(atom_map: PlumedAtomMap, label: str) -> tuple[list[str], st
     for i, atom_index in enumerate(atom_map.atoms_1based):
         position_label = f"{label}_position_{i}"
         position_lines.append(
-            f"{position_label}: POSITION ATOM={int(atom_index)}"
+            f"{position_label}: POSITION ATOM={int(atom_index)} NOPBC"
         )
         arguments.extend(
             f"{position_label}.{axis}" for axis in ("x", "y", "z")
