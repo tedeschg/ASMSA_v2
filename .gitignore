@@ -9,7 +9,7 @@ build/
 venv/
 .DS_Store
 .idea
-# Large data artifacts kept out by default
+
 *.xtc
 *.trr
 *.h5
@@ -19,3 +19,4 @@ venv/
 # Logs
 *.log
 logs/
+notebooks/run
